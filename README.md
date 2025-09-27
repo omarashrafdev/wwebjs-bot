@@ -23,7 +23,30 @@ A comprehensive Express.js API server for WhatsApp Web integration with student 
 
 ## 🛠️ Installation
 
-### Option 1: Docker Deployment (Recommended)
+### Option 1: Appwrite Cloud Deployment (Recommended)
+
+Deploy to Appwrite Cloud for serverless, scalable hosting:
+
+1. **Install Appwrite CLI**:
+   ```bash
+   npm install -g appwrite-cli
+   ```
+
+2. **Configure for Appwrite**:
+   ```bash
+   cp .env.appwrite .env
+   # Edit .env with your Appwrite project details
+   ```
+
+3. **Build and Deploy**:
+   ```bash
+   npm run build:appwrite
+   appwrite deploy function
+   ```
+
+📋 **[Complete Appwrite Deployment Guide](APPWRITE_DEPLOYMENT.md)**
+
+### Option 2: Docker Deployment
 
 1. **Clone the repository**:
    ```bash
@@ -47,7 +70,7 @@ A comprehensive Express.js API server for WhatsApp Web integration with student 
    ./deploy.sh
    ```
 
-### Option 2: Manual Installation
+### Option 3: Manual Installation
 
 1. **Install dependencies**:
    ```bash
@@ -214,6 +237,13 @@ FEATURE_STUDENT_MANAGEMENT=true
 - **whatsapp-api**: Main application server
 - **redis**: Session storage and caching
 - **nginx**: Reverse proxy with SSL termination
+
+### Appwrite Cloud Services
+
+- **Functions**: Serverless WhatsApp API execution
+- **Database**: Session, message, and contact storage
+- **Storage**: Media file uploads and management
+- **CDN**: Global content delivery
 
 ## 🔒 Security Features
 

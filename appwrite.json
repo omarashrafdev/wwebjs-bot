@@ -1,0 +1,244 @@
+{
+    "projectId": "YOUR_APPWRITE_PROJECT_ID",
+    "projectName": "WhatsApp API Server",
+    "functions": [
+        {
+            "name": "whatsapp-api",
+            "enabled": true,
+            "runtime": "node-18.0",
+            "path": "functions/whatsapp-api",
+            "entrypoint": "src/main.js",
+            "ignore": [
+                "node_modules",
+                ".npm",
+                ".vscode",
+                ".git",
+                ".wwebjs_auth",
+                ".wwebjs_cache",
+                "uploads",
+                "logs",
+                "*.log",
+                "README.md"
+            ],
+            "execute": ["any"],
+            "events": [],
+            "schedule": "",
+            "timeout": 900,
+            "logging": true,
+            "variables": {
+                "NODE_ENV": "production",
+                "PORT": "3000",
+                "HOST": "0.0.0.0",
+                "WHATSAPP_SESSION_NAME": "appwrite-session",
+                "WHATSAPP_HEADLESS": "true",
+                "MESSAGE_DELAY": "2000",
+                "MAX_BULK_MESSAGES": "50",
+                "LOG_LEVEL": "info",
+                "PUPPETEER_HEADLESS": "true",
+                "APPWRITE_FUNCTION_RUNTIME_NAME": "node-18.0",
+                "APPWRITE_FUNCTION_RUNTIME_VERSION": "18.0"
+            }
+        }
+    ],
+    "databases": [
+        {
+            "name": "WhatsAppDB",
+            "enabled": true,
+            "tables": [
+                {
+                    "name": "Sessions",
+                    "enabled": true,
+                    "permissions": {
+                        "read": ["any"],
+                        "write": ["any"]
+                    },
+                    "attributes": [
+                        {
+                            "key": "sessionId",
+                            "type": "string",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "key": "sessionData",
+                            "type": "string",
+                            "size": 16777216,
+                            "required": true
+                        },
+                        {
+                            "key": "status",
+                            "type": "string",
+                            "size": 50,
+                            "required": true,
+                            "default": "disconnected"
+                        },
+                        {
+                            "key": "lastActive",
+                            "type": "datetime",
+                            "required": true
+                        }
+                    ],
+                    "indexes": [
+                        {
+                            "key": "sessionId_index",
+                            "type": "key",
+                            "attributes": ["sessionId"]
+                        }
+                    ]
+                },
+                {
+                    "name": "Messages",
+                    "enabled": true,
+                    "permissions": {
+                        "read": ["any"],
+                        "write": ["any"]
+                    },
+                    "attributes": [
+                        {
+                            "key": "messageId",
+                            "type": "string",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "key": "sessionId",
+                            "type": "string",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "key": "recipientNumber",
+                            "type": "string",
+                            "size": 20,
+                            "required": true
+                        },
+                        {
+                            "key": "messageContent",
+                            "type": "string",
+                            "size": 4096,
+                            "required": true
+                        },
+                        {
+                            "key": "messageType",
+                            "type": "string",
+                            "size": 50,
+                            "required": true,
+                            "default": "text"
+                        },
+                        {
+                            "key": "status",
+                            "type": "string",
+                            "size": 50,
+                            "required": true,
+                            "default": "pending"
+                        },
+                        {
+                            "key": "sentAt",
+                            "type": "datetime",
+                            "required": false
+                        },
+                        {
+                            "key": "errorMessage",
+                            "type": "string",
+                            "size": 1000,
+                            "required": false
+                        }
+                    ],
+                    "indexes": [
+                        {
+                            "key": "sessionId_index",
+                            "type": "key",
+                            "attributes": ["sessionId"]
+                        },
+                        {
+                            "key": "recipientNumber_index",
+                            "type": "key",
+                            "attributes": ["recipientNumber"]
+                        }
+                    ]
+                },
+                {
+                    "name": "Contacts",
+                    "enabled": true,
+                    "permissions": {
+                        "read": ["any"],
+                        "write": ["any"]
+                    },
+                    "attributes": [
+                        {
+                            "key": "sessionId",
+                            "type": "string",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "key": "contactId",
+                            "type": "string",
+                            "size": 255,
+                            "required": true
+                        },
+                        {
+                            "key": "phoneNumber",
+                            "type": "string",
+                            "size": 20,
+                            "required": true
+                        },
+                        {
+                            "key": "contactName",
+                            "type": "string",
+                            "size": 255,
+                            "required": false
+                        },
+                        {
+                            "key": "isGroup",
+                            "type": "boolean",
+                            "required": true,
+                            "default": false
+                        },
+                        {
+                            "key": "lastSeen",
+                            "type": "datetime",
+                            "required": false
+                        }
+                    ],
+                    "indexes": [
+                        {
+                            "key": "sessionId_index",
+                            "type": "key",
+                            "attributes": ["sessionId"]
+                        },
+                        {
+                            "key": "phoneNumber_index",
+                            "type": "key",
+                            "attributes": ["phoneNumber"]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "buckets": [
+        {
+            "name": "WhatsApp Media",
+            "enabled": true,
+            "maximumFileSize": 10485760,
+            "allowedFileExtensions": [
+                "jpg",
+                "jpeg",
+                "png",
+                "gif",
+                "pdf",
+                "doc",
+                "docx",
+                "txt",
+                "mp3",
+                "mp4",
+                "wav"
+            ],
+            "permissions": {
+                "read": ["any"],
+                "write": ["any"]
+            }
+        }
+    ]
+}
