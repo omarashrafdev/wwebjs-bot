@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  whatsapp-api:
+    build: .
+    container_name: whatsapp-api-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Debug port
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+      - LOG_LEVEL=debug
+    volumes:
+      # Mount source code for development
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      # Persist WhatsApp session data
+      - whatsapp_sessions_dev:/usr/src/app/.wwebjs_auth
+      - whatsapp_cache_dev:/usr/src/app/.wwebjs_cache
+    networks:
+      - whatsapp-network-dev
+    command: npm run dev
+
+volumes:
+  whatsapp_sessions_dev:
+    driver: local
+  whatsapp_cache_dev:
+    driver: local
+
+networks:
+  whatsapp-network-dev:
+    driver: bridge

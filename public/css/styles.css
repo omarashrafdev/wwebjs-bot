@@ -1,0 +1,252 @@
+/* Custom Styles for WhatsApp API Server */
+
+:root {
+    --whatsapp-green: #25D366;
+    --whatsapp-dark-green: #128C7E;
+    --whatsapp-light-green: #DCF8C6;
+    --message-bg: #f8f9fa;
+}
+
+body {
+    background-color: #f5f5f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.navbar-brand i {
+    color: var(--whatsapp-light-green);
+}
+
+.qr-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.qr-container img {
+    max-width: 250px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.stat-item {
+    padding: 10px;
+}
+
+.stat-item h4 {
+    font-weight: 600;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: transparent !important;
+    color: white !important;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.message-log {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: var(--message-bg);
+}
+
+.log-entry {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 14px;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-entry.sent {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.log-entry.received {
+    background-color: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+}
+
+.log-entry.error {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+}
+
+.log-entry.info {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.log-timestamp {
+    font-size: 12px;
+    color: #6c757d;
+    float: right;
+}
+
+.log-content {
+    margin-top: 4px;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-connecting {
+    background-color: #ffc107;
+    animation: pulse 2s infinite;
+}
+
+.status-connected {
+    background-color: #28a745;
+}
+
+.status-error {
+    background-color: #dc3545;
+}
+
+.status-disconnected {
+    background-color: #6c757d;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Loading animation */
+.loading-overlay {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading-overlay::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Form enhancements */
+.form-control:focus {
+    border-color: var(--whatsapp-green);
+    box-shadow: 0 0 0 0.2rem rgba(37, 211, 102, 0.25);
+}
+
+.btn-success {
+    background-color: var(--whatsapp-green);
+    border-color: var(--whatsapp-green);
+}
+
+.btn-success:hover,
+.btn-success:focus {
+    background-color: var(--whatsapp-dark-green);
+    border-color: var(--whatsapp-dark-green);
+}
+
+/* Toast customization */
+.toast.bg-success {
+    background-color: var(--whatsapp-green) !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .qr-container img {
+        max-width: 200px;
+    }
+    
+    .nav-tabs {
+        font-size: 14px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+}
+
+/* Character counter */
+.char-counter {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.char-counter.warning {
+    color: #ffc107;
+}
+
+.char-counter.danger {
+    color: #dc3545;
+}
+
+/* JSON formatting */
+.json-input {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+/* Bulk message progress */
+.progress-container {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.bulk-results {
+    margin-top: 15px;
+}
+
+.bulk-result-item {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.bulk-result-item.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.bulk-result-item.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
