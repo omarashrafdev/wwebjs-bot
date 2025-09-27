@@ -9,7 +9,7 @@ Thank you for your interest in contributing to the WhatsApp API Server! This doc
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/wwebjs-bot.git
+   git clone https://github.com/omarashrafdev/wwebjs-bot.git
    cd wwebjs-bot
    ```
 3. **Set up the development environment**:
@@ -264,7 +264,7 @@ describe('WhatsApp Service', () => {
 ### Local Development
 ```bash
 # Clone and setup
-git clone https://github.com/yourproject/wwebjs-bot.git
+git clone https://github.com/omarashrafdev/wwebjs-bot.git
 cd wwebjs-bot
 
 # Install dependencies
