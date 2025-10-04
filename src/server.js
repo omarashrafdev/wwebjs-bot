@@ -1,269 +1,253 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
 const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Import configuration and services
+const { MessageMedia } = require('whatsapp-web.js');
+const WhatsAppService = require('./whatsapp');
 const config = require('./config/config');
-const WhatsAppService = require('./services/whatsappService');
-const whatsappRoutes = require('./routes/whatsapp');
+const e = require('express');
 
 class WhatsAppServer {
     constructor() {
         this.app = express();
-        this.server = http.createServer(this.app);
-        this.io = socketIo(this.server, {
-            cors: {
-                origin: config.server.cors.origin,
-                methods: config.server.cors.methods
-            }
-        });
-        
-        this.whatsappService = new WhatsAppService();
+        this.whatsapp = new WhatsAppService();
+        this.server = null;
         this.setupMiddleware();
         this.setupRoutes();
-        this.setupSocketIO();
-        this.setupWhatsAppEvents();
-        this.setupErrorHandling();
-        
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(__dirname, '../uploads');
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
     }
 
     setupMiddleware() {
-        // Security middleware
-        this.app.use(helmet(config.security.helmet));
-        
         // CORS
-        this.app.use(cors(config.server.cors));
-        
-        // Rate limiting
-        const limiter = rateLimit(config.api.rateLimit);
-        this.app.use('/api/', limiter);
-        
-        // Logging
-        this.app.use(morgan(config.logging.format));
-        
-        // Body parsing
+        this.app.use(cors());
+
+        // JSON parser
         this.app.use(express.json({ limit: '10mb' }));
         this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-        
-        // Static files
-        this.app.use(express.static(path.join(__dirname, '../public')));
+
+        // Rate limiting
+        const limiter = rateLimit({
+            windowMs: config.rateLimit.windowMs,
+            max: config.rateLimit.maxRequests,
+            message: 'Too many requests, please try again later.'
+        });
+        this.app.use('/api/', limiter);
+
+        // API Key middleware (optional)
+        // if (config.api.apiKey) {
+        //     this.app.use('/api/', (req, res, next) => {
+        //         const apiKey = req.headers['x-api-key'] || req.query.apikey;
+        //         if (apiKey !== config.api.apiKey) {
+        //             return res.status(401).json({ error: 'Invalid API key' });
+        //         }
+        //         next();
+        //     });
+        // }
+
+        // File upload
+        this.upload = multer({
+            limits: { fileSize: config.upload.maxFileSize },
+            storage: multer.memoryStorage()
+        });
     }
 
     setupRoutes() {
-        // API routes
-        this.app.use('/api/whatsapp', whatsappRoutes(this.whatsappService));
-        
         // Health check
-        this.app.get('/health', (req, res) => {
-            res.json({
-                success: true,
-                message: 'Server is healthy',
-                timestamp: new Date().toISOString(),
-                uptime: process.uptime()
+        this.app.get('/', (req, res) => {
+            res.json({ 
+                status: 'WhatsApp API Server is running',
+                version: '1.0.0',
+                timestamp: new Date().toISOString()
             });
         });
 
         // API documentation
-        this.app.get('/api', (req, res) => {
+        this.app.get('/api/docs', (req, res) => {
             res.json({
-                success: true,
-                message: 'WhatsApp API Server',
-                version: config.api.version,
-                endpoints: {
-                    'POST /api/whatsapp/send': 'Send a single message',
-                    'POST /api/whatsapp/send-media': 'Send a message with media',
-                    'POST /api/whatsapp/send-bulk': 'Send bulk messages',
-                    'GET /api/whatsapp/status': 'Get WhatsApp client status',
-                    'GET /api/whatsapp/qr': 'Get QR code for authentication',
-                    'GET /api/whatsapp/chats': 'Get all chats',
-                    'GET /api/whatsapp/contacts': 'Get all contacts',
-                    'POST /api/whatsapp/restart': 'Restart WhatsApp client',
-                    'GET /health': 'Health check',
-                    'GET /': 'Web interface'
-                }
+                endpoints: [
+                    { method: 'GET', path: '/', description: 'Health check' },
+                    { method: 'GET', path: '/api/status', description: 'Get WhatsApp client status' },
+                    { method: 'GET', path: '/api/qr', description: 'Get WhatsApp QR code (base64)' },
+                    { method: 'GET', path: '/api/qr/image', description: 'Get WhatsApp QR code as image' },
+                    { method: 'POST', path: '/api/send', description: 'Send a single message', body: { to: 'string', message: 'string' } },
+                    { method: 'POST', path: '/api/send/bulk', description: 'Send bulk messages', body: { recipients: 'array', message: 'string' } },
+                    { method: 'POST', path: '/api/send/media', description: 'Send media message', body: { to: 'string', caption: 'string', file: 'file' } },
+                    { method: 'GET', path: '/api/chats', description: 'Get WhatsApp chats' },
+                    { method: 'POST', path: '/api/restart', description: 'Restart WhatsApp client' }
+                ]
             });
         });
-        
-        // Serve the main web interface
-        this.app.get('/', (req, res) => {
-            res.sendFile(path.join(__dirname, '../views/index.html'));
+
+
+        // WhatsApp status
+        this.app.get('/api/status', (req, res) => {
+            try {
+                const status = this.whatsapp.getStatus();
+                res.json(status);
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Get QR code
+        this.app.get('/api/qr', (req, res) => {
+            try {
+                const qrCode = this.whatsapp.getQRCode();
+                if (!qrCode) {
+                    return res.status(404).json({ error: 'QR code not available' });
+                }
+                
+                // Return as base64 data URL
+                res.json({ qrCode });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Get QR code as image
+        this.app.get('/api/qr/image', (req, res) => {
+            try {
+                const qrCode = this.whatsapp.getQRCode();
+                if (!qrCode) {
+                    return res.status(404).json({ error: 'QR code not available' });
+                }
+                
+                // Extract base64 data and send as image
+                const base64Data = qrCode.replace(/^data:image\/png;base64,/, '');
+                const buffer = Buffer.from(base64Data, 'base64');
+                
+                res.setHeader('Content-Type', 'image/png');
+                res.send(buffer);
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Send single message
+        this.app.post('/api/whatsapp/send', async (req, res) => {
+            try {
+                const { to, message } = req.body;
+                
+                if (!to || !message) {
+                    return res.status(400).json({ error: 'Missing required fields: to, message' });
+                }
+
+                const result = await this.whatsapp.sendMessage(to, message);
+                res.json(result);
+            } catch (error) {
+                if (error.message.toLowerCase().includes('session')) {
+                    this.whatsapp.updateStatus(false);
+                }
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Send bulk messages
+        this.app.post('/api/whatsapp/send/bulk', async (req, res) => {
+            try {
+                const { recipients, message } = req.body;
+                
+                if (!recipients || !Array.isArray(recipients) || !message) {
+                    return res.status(400).json({ error: 'Missing required fields: recipients (array), message' });
+                }
+
+                if (recipients.length > 50) {
+                    return res.status(400).json({ error: 'Maximum 50 recipients allowed' });
+                }
+
+                const results = await this.whatsapp.sendBulkMessages(recipients, message);
+                res.json({ results });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Send media message
+        this.app.post('/api/whatsapp/send/media', this.upload.single('file'), async (req, res) => {
+            try {
+                const { to, caption } = req.body;
+                const file = req.file;
+                
+                if (!to || !file) {
+                    return res.status(400).json({ error: 'Missing required fields: to, file' });
+                }
+
+                // Create MessageMedia from uploaded file
+                const media = new MessageMedia(file.mimetype, file.buffer.toString('base64'), file.originalname);
+                
+                const result = await this.whatsapp.sendMediaMessage(to, media, caption);
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Get chats
+        this.app.get('/api/whatsapp/chats', async (req, res) => {
+            try {
+                const chats = await this.whatsapp.getChats();
+                res.json({ chats });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Restart WhatsApp client
+        this.app.post('/api/whatsapp/restart', async (req, res) => {
+            try {
+                await this.whatsapp.destroy();
+                await this.whatsapp.initialize();
+                res.json({ message: 'WhatsApp client restarted successfully' });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Error handling middleware
+        this.app.use((error, req, res, next) => {
+            console.error('Unhandled error:', error);
+            res.status(500).json({ error: 'Internal server error' });
         });
 
         // 404 handler
         this.app.use((req, res) => {
-            res.status(404).json({
-                success: false,
-                error: 'Endpoint not found',
-                message: `The endpoint ${req.method} ${req.originalUrl} was not found`
-            });
-        });
-    }
-
-    setupSocketIO() {
-        this.io.on('connection', (socket) => {
-            console.log('Client connected:', socket.id);
-            
-            // Send current status to new client
-            socket.emit('status', this.whatsappService.getStatus());
-            
-            // Send QR code if available
-            const qrCode = this.whatsappService.getQRCode();
-            if (qrCode) {
-                socket.emit('qr', qrCode);
-            }
-
-            socket.on('disconnect', () => {
-                console.log('Client disconnected:', socket.id);
-            });
-
-            socket.on('restart-client', async () => {
-                try {
-                    await this.whatsappService.restart();
-                    socket.emit('message', { type: 'success', text: 'Client restarted successfully' });
-                } catch (error) {
-                    socket.emit('message', { type: 'error', text: 'Failed to restart client: ' + error.message });
-                }
-            });
-        });
-    }
-
-    setupWhatsAppEvents() {
-        this.whatsappService.on('qr', (qrCode) => {
-            console.log('QR code generated');
-            this.io.emit('qr', qrCode);
-        });
-
-        this.whatsappService.on('ready', (clientInfo) => {
-            console.log('WhatsApp client ready');
-            this.io.emit('ready', clientInfo);
-            this.io.emit('status', this.whatsappService.getStatus());
-        });
-
-        this.whatsappService.on('authenticated', () => {
-            console.log('WhatsApp client authenticated');
-            this.io.emit('authenticated');
-            this.io.emit('status', this.whatsappService.getStatus());
-        });
-
-        this.whatsappService.on('auth_failure', (message) => {
-            console.log('Authentication failed:', message);
-            this.io.emit('auth_failure', message);
-            this.io.emit('status', this.whatsappService.getStatus());
-        });
-
-        this.whatsappService.on('disconnected', (reason) => {
-            console.log('WhatsApp client disconnected:', reason);
-            this.io.emit('disconnected', reason);
-            this.io.emit('status', this.whatsappService.getStatus());
-        });
-
-        this.whatsappService.on('message', (message) => {
-            this.io.emit('message_received', {
-                from: message.from,
-                body: message.body,
-                timestamp: message.timestamp,
-                type: message.type
-            });
-        });
-
-        this.whatsappService.on('error', (error) => {
-            console.error('WhatsApp service error:', error);
-            this.io.emit('error', error.message);
-        });
-    }
-
-    setupErrorHandling() {
-        // Global error handler
-        this.app.use((error, req, res, next) => {
-            console.error('Unhandled error:', error);
-            
-            // Multer errors
-            if (error instanceof multer.MulterError) {
-                if (error.code === 'LIMIT_FILE_SIZE') {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'File too large',
-                        message: `File size exceeds the maximum limit of ${config.upload.maxFileSize / 1024 / 1024}MB`
-                    });
-                }
-            }
-
-            res.status(500).json({
-                success: false,
-                error: 'Internal server error',
-                message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-            });
-        });
-
-        // Handle unhandled promise rejections
-        process.on('unhandledRejection', (reason, promise) => {
-            console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-        });
-
-        // Handle uncaught exceptions
-        process.on('uncaughtException', (error) => {
-            console.error('Uncaught Exception:', error);
-            process.exit(1);
+            res.status(404).json({ error: 'Endpoint not found' });
         });
     }
 
     async start() {
         try {
-            // Initialize WhatsApp service
-            await this.whatsappService.initialize();
-            
+            // Initialize WhatsApp client
+            console.log('Initializing WhatsApp client...');
+            await this.whatsapp.initialize();
+
             // Start server
-            this.server.listen(config.server.port, config.server.host, () => {
-                console.log(`
-🚀 WhatsApp API Server is running!
-
-📱 Server: http://${config.server.host}:${config.server.port}
-🌐 Web Interface: http://${config.server.host}:${config.server.port}
-📋 API Documentation: http://${config.server.host}:${config.server.port}/api
-💚 Health Check: http://${config.server.host}:${config.server.port}/health
-
-📞 API Endpoints:
-   POST /api/whatsapp/send - Send single message
-   POST /api/whatsapp/send-bulk - Send bulk messages  
-   GET  /api/whatsapp/status - Get client status
-   GET  /api/whatsapp/qr - Get QR code
-
-Environment: ${process.env.NODE_ENV || 'development'}
-Rate Limit: ${config.api.rateLimit.max} requests per ${config.api.rateLimit.windowMs / 1000}s
-                `);
+            this.server = this.app.listen(config.server.port, config.server.host, () => {
+                console.log(`✅ WhatsApp API Server running on http://${config.server.host}:${config.server.port}`);
+                console.log(`📱 Environment: ${config.server.env}`);
+                
+                if (!this.whatsapp.getStatus().ready) {
+                    console.log('📲 Waiting for WhatsApp authentication...');
+                    console.log(`🔗 Check QR code at: http://${config.server.host}:${config.server.port}/api/qr/image`);
+                }
             });
-            
         } catch (error) {
             console.error('Failed to start server:', error);
-            process.exit(1);
+            throw error;
         }
     }
 
     async stop() {
         console.log('Shutting down server...');
         
-        // Close WhatsApp client
-        if (this.whatsappService) {
-            await this.whatsappService.destroy();
+        if (this.whatsapp) {
+            await this.whatsapp.destroy();
+        }
+
+        if (this.server) {
+            this.server.close();
         }
         
-        // Close server
-        this.server.close(() => {
-            console.log('Server closed');
-            process.exit(0);
-        });
+        console.log('Server stopped');
     }
 }
 

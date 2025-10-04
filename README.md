@@ -1,19 +1,1171 @@
-# WhatsApp API Server
+# WhatsApp Web API Server
 
-A comprehensive Express.js API server for WhatsApp Web integration with student management features, built with `whatsapp-web.js`.
+A production-ready REST API server for WhatsApp Web automation built with Express.js and `whatsapp-web.js`. Send messages, media files, and manage WhatsApp communications programmatically.
 
-## 🚀 Features
+# WhatsApp Web API Server
 
-- **WhatsApp Integration**: Full WhatsApp Web API with QR code authentication
-- **REST API**: Send single and bulk messages with media support
-- **Web Interface**: User-friendly web dashboard for QR authentication and messaging
-- **Student Management**: Bulk messaging for educational institutions
-- **Real-time Updates**: WebSocket integration for live QR codes and status updates
-- **Media Support**: Send images, documents, and other media files
-- **API Authentication**: Secure API key-based authentication
-- **Rate Limiting**: Protection against API abuse
-- **Docker Support**: Complete containerization with Docker Compose
-- **Production Ready**: SSL support, Nginx reverse proxy, and security hardening
+A production-ready REST API server for WhatsApp Web automation built with Express.js and `whatsapp-web.js`. Send messages, media files, and manage WhatsApp communications programmatically.
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Quick Start](#-quick-start)
+- [API Documentation](#-api-documentation)
+  - [Authentication](#authentication)
+  - [Status & Health Check](#status--health-check)
+  - [QR Code Endpoints](#qr-code-endpoints)
+  - [Messaging Endpoints](#messaging-endpoints)
+  - [Chat Management](#chat-management)
+- [Error Handling](#-error-handling)
+- [Rate Limiting](#-rate-limiting)
+- [Examples](#-examples)
+- [Production Deployment](#-production-deployment)
+- [Troubleshooting](#-troubleshooting)
+- [License](#-license)
+
+## ✨ Features
+
+- **WhatsApp Web Integration**: Full integration with WhatsApp Web using puppeteer
+- **QR Code Authentication**: Easy authentication with QR code scanning
+- **Single & Bulk Messaging**: Send individual or bulk messages efficiently
+- **Media Support**: Send images, documents, PDFs, and other media files
+- **REST API**: Clean and well-documented RESTful API
+- **Rate Limiting**: Built-in protection against API abuse
+- **CORS Support**: Configurable cross-origin resource sharing
+- **File Upload**: Secure file upload handling with size limits
+- **Session Persistence**: Maintains WhatsApp session across restarts
+- **Error Handling**: Comprehensive error handling and logging
+- **Production Ready**: Optimized for both development and production environments
+
+## 📋 Prerequisites
+
+- **Node.js**: Version 18.0 or higher
+- **npm**: Version 8.0 or higher
+- **Google Chrome** or **Chromium**: Required for WhatsApp Web automation
+- **WhatsApp Account**: Active WhatsApp account on your mobile device
+
+## 🚀 Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/omarashrafdev/wwebjs-bot.git
+cd wwebjs-bot
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Environment
+
+Copy the example environment file and configure it:
+
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file with your settings (see [Configuration](#-configuration) section).
+
+### 4. Start the Server
+
+**Development Mode:**
+```bash
+npm run dev
+```
+
+**Production Mode:**
+```bash
+npm start
+```
+
+The server will start on `http://localhost:3000` (or your configured port).
+
+## ⚙️ Configuration
+
+The application is configured using environment variables in the `.env` file:
+
+### Server Configuration
+
+```bash
+NODE_ENV=development          # Environment: development or production
+PORT=3000                     # Server port
+HOST=0.0.0.0                 # Server host (0.0.0.0 for all interfaces)
+```
+
+### API Security
+
+```bash
+API_KEY=your-api-key-here    # Optional: API key for authentication
+                             # Leave empty to disable API key authentication
+```
+
+### Rate Limiting
+
+```bash
+RATE_LIMIT_WINDOW_MS=900000      # Time window in milliseconds (15 minutes)
+RATE_LIMIT_MAX_REQUESTS=100      # Max requests per window
+```
+
+### WhatsApp Configuration
+
+```bash
+WHATSAPP_SESSION_NAME=default-session    # Session name for persistence
+WHATSAPP_HEADLESS=true                   # Run browser in headless mode
+WHATSAPP_DEVTOOLS=false                  # Enable browser DevTools
+```
+
+### Chrome Configuration
+
+```bash
+# For macOS (development):
+CHROME_EXECUTABLE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+# For Windows (production):
+# CHROME_EXECUTABLE_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+
+# Leave empty to use bundled Chromium
+```
+
+### Message Configuration
+
+```bash
+DEFAULT_MESSAGE_DELAY=1000    # Delay between messages (ms)
+BULK_MESSAGE_DELAY=2000       # Delay for bulk messages (ms)
+MAX_BULK_RECIPIENTS=50        # Maximum bulk recipients per request
+```
+
+### File Upload Configuration
+
+```bash
+MAX_FILE_SIZE=10485760       # Max file size in bytes (10MB)
+UPLOAD_DIR=uploads           # Upload directory
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/gif,application/pdf
+```
+
+### CORS Configuration
+
+```bash
+CORS_ORIGIN=*               # Allowed origins (* for all)
+CORS_CREDENTIALS=true       # Allow credentials
+```
+
+## 🎯 Quick Start
+
+1. **Start the server:**
+   ```bash
+   npm start
+   ```
+
+2. **Check server status:**
+   ```bash
+   curl http://localhost:3000/
+   ```
+
+3. **Get QR code:**
+   - Visit `http://localhost:3000/api/qr/image` in your browser
+   - Scan with WhatsApp mobile app (Settings → Linked Devices → Link a Device)
+
+4. **Wait for authentication:**
+   - Server logs will show "WhatsApp client is ready!" when connected
+
+5. **Send your first message:**
+   ```bash
+   curl -X POST http://localhost:3000/api/whatsapp/send \
+     -H "Content-Type: application/json" \
+     -d '{
+       "to": "1234567890",
+       "message": "Hello from WhatsApp API!"
+     }'
+   ```
+
+## 📚 API Documentation
+
+### Base URL
+
+```
+http://localhost:3000
+```
+
+### Authentication
+
+If `API_KEY` is configured in your environment, include it in your requests:
+
+**Option 1: Header Authentication (Recommended)**
+```bash
+X-API-Key: your-api-key-here
+```
+
+**Option 2: Query Parameter**
+```bash
+?apikey=your-api-key-here
+```
+
+Example:
+```bash
+curl -H "X-API-Key: your-api-key" http://localhost:3000/api/status
+```
+
+---
+
+### Status & Health Check
+
+#### 1. Root Health Check
+
+Check if the server is running.
+
+**Endpoint:** `GET /`
+
+**Response:**
+```json
+{
+  "status": "WhatsApp API Server is running",
+  "version": "1.0.0",
+  "timestamp": "2025-10-04T12:00:00.000Z"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:3000/
+```
+
+---
+
+#### 2. Get WhatsApp Status
+
+Get the current status of the WhatsApp client.
+
+**Endpoint:** `GET /api/status`
+
+**Response:**
+```json
+{
+  "ready": true,
+  "hasQR": false,
+  "initializing": false
+}
+```
+
+**Fields:**
+- `ready` (boolean): WhatsApp client is authenticated and ready
+- `hasQR` (boolean): QR code is available for scanning
+- `initializing` (boolean): Client is currently initializing
+
+**Example:**
+```bash
+curl http://localhost:3000/api/status
+```
+
+---
+
+### QR Code Endpoints
+
+#### 3. Get QR Code (Base64)
+
+Get the QR code as a base64-encoded data URL.
+
+**Endpoint:** `GET /api/qr`
+
+**Response:**
+```json
+{
+  "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "error": "QR code not available"
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:3000/api/qr
+```
+
+---
+
+#### 4. Get QR Code (Image)
+
+Get the QR code as a PNG image.
+
+**Endpoint:** `GET /api/qr/image`
+
+**Response:** PNG image (Content-Type: image/png)
+
+**Error Response (404):**
+```json
+{
+  "error": "QR code not available"
+}
+```
+
+**Example:**
+```bash
+# View in browser
+open http://localhost:3000/api/qr/image
+
+# Download with curl
+curl http://localhost:3000/api/qr/image -o qrcode.png
+```
+
+---
+
+### Messaging Endpoints
+
+#### 5. Send Single Message
+
+Send a text message to a single recipient.
+
+**Endpoint:** `POST /api/whatsapp/send`
+
+**Request Body:**
+```json
+{
+  "to": "1234567890",
+  "message": "Hello from WhatsApp API!"
+}
+```
+
+**Parameters:**
+- `to` (string, required): Phone number (with or without country code)
+- `message` (string, required): Text message to send
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "messageId": "true_1234567890@c.us_ABCDEF1234567890"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": "Missing required fields: to, message"
+}
+```
+
+**Error Response (500):**
+```json
+{
+  "error": "WhatsApp client is not ready"
+}
+```
+
+**Phone Number Format:**
+- Automatically formats phone numbers
+- Adds country code if missing (defaults to Egypt +20)
+- Examples: `1234567890`, `+201234567890`, `201234567890`
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "1234567890",
+    "message": "Hello! This is a test message."
+  }'
+```
+
+---
+
+#### 6. Send Bulk Messages
+
+Send the same message to multiple recipients.
+
+**Endpoint:** `POST /api/whatsapp/send/bulk`
+
+**Request Body:**
+```json
+{
+  "recipients": ["1234567890", "0987654321", "+201111111111"],
+  "message": "Hello everyone! This is a bulk message."
+}
+```
+
+**Parameters:**
+- `recipients` (array, required): Array of phone numbers (max 50)
+- `message` (string, required): Text message to send
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "recipient": "1234567890",
+      "success": true,
+      "messageId": "true_1234567890@c.us_ABCDEF1234567890"
+    },
+    {
+      "recipient": "0987654321",
+      "success": false,
+      "error": "Failed to send message: Invalid number"
+    }
+  ]
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": "Missing required fields: recipients (array), message"
+}
+```
+
+```json
+{
+  "error": "Maximum 50 recipients allowed"
+}
+```
+
+**Features:**
+- Automatically delays between messages (configured via `BULK_MESSAGE_DELAY`)
+- Returns individual success/failure for each recipient
+- Continues sending even if some messages fail
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/send/bulk \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipients": [
+      "1234567890",
+      "0987654321",
+      "1111111111"
+    ],
+    "message": "Hello! This is a bulk notification."
+  }'
+```
+
+---
+
+#### 7. Send Media Message
+
+Send a media file (image, document, video, etc.) with an optional caption.
+
+**Endpoint:** `POST /api/whatsapp/send/media`
+
+**Content-Type:** `multipart/form-data`
+
+**Form Fields:**
+- `to` (string, required): Phone number
+- `caption` (string, optional): Caption for the media
+- `file` (file, required): Media file to send
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "messageId": "true_1234567890@c.us_ABCDEF1234567890"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "error": "Missing required fields: to, file"
+}
+```
+
+**Supported File Types:**
+- Images: JPEG, PNG, GIF
+- Documents: PDF, DOC, DOCX, TXT
+- Videos: MP4, MOV
+- Audio: MP3, OGG, WAV
+
+**Size Limit:** Configured via `MAX_FILE_SIZE` (default: 10MB)
+
+**Example (curl):**
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/send/media \
+  -F "to=1234567890" \
+  -F "caption=Check out this document!" \
+  -F "file=@/path/to/document.pdf"
+```
+
+**Example (JavaScript with FormData):**
+```javascript
+const formData = new FormData();
+formData.append('to', '1234567890');
+formData.append('caption', 'Check this out!');
+formData.append('file', fileInput.files[0]);
+
+fetch('http://localhost:3000/api/whatsapp/send/media', {
+  method: 'POST',
+  body: formData
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+---
+
+### Chat Management
+
+#### 8. Get Chats
+
+Retrieve all WhatsApp chats.
+
+**Endpoint:** `GET /api/whatsapp/chats`
+
+**Response:**
+```json
+{
+  "chats": [
+    {
+      "id": "1234567890@c.us",
+      "name": "John Doe",
+      "isGroup": false,
+      "unreadCount": 5
+    },
+    {
+      "id": "123456789@g.us",
+      "name": "Project Team",
+      "isGroup": true,
+      "unreadCount": 12
+    }
+  ]
+}
+```
+
+**Fields:**
+- `id` (string): Chat ID
+- `name` (string): Contact or group name
+- `isGroup` (boolean): Whether this is a group chat
+- `unreadCount` (number): Number of unread messages
+
+**Example:**
+```bash
+curl http://localhost:3000/api/whatsapp/chats
+```
+
+---
+
+#### 9. Restart WhatsApp Client
+
+Restart the WhatsApp client (useful for reconnection).
+
+**Endpoint:** `POST /api/whatsapp/restart`
+
+**Response:**
+```json
+{
+  "message": "WhatsApp client restarted successfully"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/restart
+```
+
+---
+
+## ⚠️ Error Handling
+
+### Error Response Format
+
+All error responses follow this structure:
+
+```json
+{
+  "error": "Error message description"
+}
+```
+
+### Common HTTP Status Codes
+
+| Status Code | Meaning | Description |
+|------------|---------|-------------|
+| 200 | OK | Request successful |
+| 400 | Bad Request | Missing or invalid parameters |
+| 401 | Unauthorized | Invalid or missing API key |
+| 404 | Not Found | Resource not found (e.g., QR code not available) |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server or WhatsApp client error |
+
+### Common Error Messages
+
+| Error Message | Cause | Solution |
+|--------------|-------|----------|
+| `WhatsApp client is not ready` | Client not authenticated | Scan QR code or wait for initialization |
+| `Missing required fields: to, message` | Invalid request body | Include all required fields |
+| `QR code not available` | Client already authenticated or not initialized | Check `/api/status` endpoint |
+| `Maximum 50 recipients allowed` | Too many bulk recipients | Split into smaller batches |
+| `Invalid API key` | Wrong or missing API key | Check your API key configuration |
+| `Too many requests` | Rate limit exceeded | Wait before making more requests |
+
+---
+
+## 🛡️ Rate Limiting
+
+The API implements rate limiting to prevent abuse:
+
+- **Default Limit:** 100 requests per 15 minutes per IP address
+- **Applies to:** All `/api/*` endpoints
+- **Configuration:** Set `RATE_LIMIT_WINDOW_MS` and `RATE_LIMIT_MAX_REQUESTS` in `.env`
+
+**Rate Limit Response (429):**
+```json
+{
+  "message": "Too many requests, please try again later."
+}
+```
+
+**Best Practices:**
+- Implement exponential backoff in your client
+- Cache responses when possible
+- Use bulk endpoints for multiple operations
+- Monitor your request rate
+
+---
+
+## 💡 Examples
+
+### Example 1: Complete Workflow
+
+```bash
+# 1. Check server health
+curl http://localhost:3000/
+
+# 2. Check WhatsApp status
+curl http://localhost:3000/api/status
+
+# 3. Get QR code (if not authenticated)
+curl http://localhost:3000/api/qr/image -o qrcode.png
+
+# 4. Send a message
+curl -X POST http://localhost:3000/api/whatsapp/send \
+  -H "Content-Type: application/json" \
+  -d '{"to": "1234567890", "message": "Hello!"}'
+
+# 5. Get chats
+curl http://localhost:3000/api/whatsapp/chats
+```
+
+### Example 2: Node.js Client
+
+```javascript
+const axios = require('axios');
+
+const API_BASE_URL = 'http://localhost:3000';
+const API_KEY = 'your-api-key-here';
+
+// Create axios instance with API key
+const client = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'X-API-Key': API_KEY
+  }
+});
+
+// Check status
+async function checkStatus() {
+  const response = await client.get('/api/status');
+  console.log('Status:', response.data);
+  return response.data;
+}
+
+// Send message
+async function sendMessage(to, message) {
+  try {
+    const response = await client.post('/api/whatsapp/send', {
+      to,
+      message
+    });
+    console.log('Message sent:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Send bulk messages
+async function sendBulkMessages(recipients, message) {
+  try {
+    const response = await client.post('/api/whatsapp/send/bulk', {
+      recipients,
+      message
+    });
+    console.log('Bulk messages sent:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Usage
+(async () => {
+  await checkStatus();
+  await sendMessage('1234567890', 'Hello from Node.js!');
+  await sendBulkMessages(
+    ['1234567890', '0987654321'],
+    'Bulk message from Node.js!'
+  );
+})();
+```
+
+### Example 3: Python Client
+
+```python
+import requests
+import json
+
+API_BASE_URL = 'http://localhost:3000'
+API_KEY = 'your-api-key-here'
+
+headers = {
+    'Content-Type': 'application/json',
+    'X-API-Key': API_KEY
+}
+
+# Check status
+def check_status():
+    response = requests.get(f'{API_BASE_URL}/api/status', headers=headers)
+    print('Status:', response.json())
+    return response.json()
+
+# Send message
+def send_message(to, message):
+    data = {
+        'to': to,
+        'message': message
+    }
+    response = requests.post(
+        f'{API_BASE_URL}/api/whatsapp/send',
+        headers=headers,
+        json=data
+    )
+    print('Message sent:', response.json())
+    return response.json()
+
+# Send media message
+def send_media(to, file_path, caption=''):
+    with open(file_path, 'rb') as file:
+        files = {'file': file}
+        data = {
+            'to': to,
+            'caption': caption
+        }
+        response = requests.post(
+            f'{API_BASE_URL}/api/whatsapp/send/media',
+            data=data,
+            files=files,
+            headers={'X-API-Key': API_KEY}  # No Content-Type for multipart
+        )
+    print('Media sent:', response.json())
+    return response.json()
+
+# Usage
+if __name__ == '__main__':
+    check_status()
+    send_message('1234567890', 'Hello from Python!')
+    send_media('1234567890', '/path/to/image.jpg', 'Check this image!')
+```
+
+### Example 4: Using with Postman
+
+1. **Import Collection:** Use the provided Postman collection in the `postman/` directory
+
+2. **Set Environment Variables:**
+   - `baseUrl`: `http://localhost:3000`
+   - `apiKey`: Your API key (if configured)
+   - `testPhoneNumber`: Your test phone number
+
+3. **Test Endpoints:**
+   - Start with "Health Check"
+   - Check "WhatsApp Status"
+   - View "Get QR Code"
+   - Try "Send Message"
+
+---
+
+## 🚀 Production Deployment
+
+### Environment Configuration
+
+For production deployment, update your `.env`:
+
+```bash
+NODE_ENV=production
+PORT=3000
+HOST=0.0.0.0
+
+# Set a strong API key
+API_KEY=your-secure-api-key-here
+
+# Enable stricter rate limiting
+RATE_LIMIT_MAX_REQUESTS=50
+RATE_LIMIT_WINDOW_MS=900000
+
+# Use headless mode
+WHATSAPP_HEADLESS=true
+
+# Windows Chrome path
+CHROME_EXECUTABLE_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+```
+
+### Using PM2 (Process Manager)
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Start application
+pm2 start app.js --name whatsapp-api
+
+# View logs
+pm2 logs whatsapp-api
+
+# Monitor
+pm2 monit
+
+# Restart
+pm2 restart whatsapp-api
+
+# Setup startup script
+pm2 startup
+pm2 save
+```
+
+### Using Docker
+
+Create a `Dockerfile`:
+
+```dockerfile
+FROM node:18-slim
+
+# Install Chrome dependencies
+RUN apt-get update && apt-get install -y \
+    chromium \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "app.js"]
+```
+
+Build and run:
+
+```bash
+# Build image
+docker build -t whatsapp-api .
+
+# Run container
+docker run -d \
+  --name whatsapp-api \
+  -p 3000:3000 \
+  -v $(pwd)/.wwebjs_auth:/app/.wwebjs_auth \
+  -e API_KEY=your-api-key \
+  whatsapp-api
+```
+
+### Nginx Reverse Proxy
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### Security Best Practices
+
+1. **Always use HTTPS in production**
+2. **Set a strong API key**
+3. **Implement IP whitelisting if possible**
+4. **Keep dependencies updated:** `npm audit fix`
+5. **Use environment-specific configurations**
+6. **Monitor logs regularly**
+7. **Implement request logging and monitoring**
+8. **Set up proper firewall rules**
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues and Solutions
+
+#### 1. QR Code Not Appearing
+
+**Symptoms:** `/api/qr` returns 404
+
+**Solutions:**
+- Wait a few seconds for initialization
+- Check if already authenticated: `GET /api/status`
+- Restart the client: `POST /api/whatsapp/restart`
+- Check server logs for errors
+
+#### 2. WhatsApp Client Not Ready
+
+**Symptoms:** "WhatsApp client is not ready" error
+
+**Solutions:**
+- Scan the QR code if not authenticated
+- Check `/api/status` to see client state
+- Verify Chrome/Chromium is installed correctly
+- Check `CHROME_EXECUTABLE_PATH` in `.env`
+
+#### 3. Messages Not Sending
+
+**Symptoms:** Send message fails or times out
+
+**Solutions:**
+- Verify phone number format (include country code)
+- Check if recipient number exists on WhatsApp
+- Ensure client is ready: `GET /api/status`
+- Check rate limits and delays
+- Review server logs for specific errors
+
+#### 4. Chrome/Chromium Issues
+
+**Symptoms:** Browser fails to launch
+
+**Solutions:**
+
+**macOS:**
+```bash
+# Verify Chrome path
+ls "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+# Update .env
+CHROME_EXECUTABLE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+```
+
+**Windows:**
+```bash
+# Verify Chrome path
+dir "C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+# Update .env
+CHROME_EXECUTABLE_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+```
+
+**Linux:**
+```bash
+# Install Chromium
+sudo apt-get install chromium-browser
+
+# Or leave CHROME_EXECUTABLE_PATH empty to use bundled Chromium
+```
+
+#### 5. Session Lost After Restart
+
+**Symptoms:** Need to scan QR code after every restart
+
+**Solutions:**
+- Ensure `.wwebjs_auth` directory has write permissions
+- Check `WHATSAPP_SESSION_NAME` is set correctly
+- Don't delete `.wwebjs_auth` directory
+- Verify disk space is available
+
+#### 6. Rate Limit Issues
+
+**Symptoms:** 429 Too Many Requests
+
+**Solutions:**
+- Implement delays between requests
+- Increase `RATE_LIMIT_MAX_REQUESTS` in `.env`
+- Use bulk endpoints for multiple messages
+- Implement client-side rate limiting
+
+### Debug Mode
+
+Enable verbose logging:
+
+```bash
+# In .env
+LOG_LEVEL=debug
+WHATSAPP_DEVTOOLS=true
+WHATSAPP_HEADLESS=false
+```
+
+### Viewing Logs
+
+```bash
+# Real-time logs (if using PM2)
+pm2 logs whatsapp-api
+
+# Docker logs
+docker logs -f whatsapp-api
+
+# Standard output
+npm start
+```
+
+### Getting Help
+
+If you're still experiencing issues:
+
+1. Check the [GitHub Issues](https://github.com/omarashrafdev/wwebjs-bot/issues)
+2. Review [whatsapp-web.js documentation](https://wwebjs.dev/)
+3. Enable debug mode and check logs
+4. Ensure all dependencies are up to date: `npm update`
+
+---
+
+## 📁 Project Structure
+
+```
+wwebjs-bot/
+├── app.js                    # Application entry point
+├── package.json              # Dependencies and scripts
+├── .env                      # Environment configuration (create from .env.example)
+├── .env.example              # Example environment configuration
+├── README.md                 # This documentation
+├── .gitignore               # Git ignore rules
+│
+├── src/
+│   ├── server.js            # Express server setup and routes
+│   ├── whatsapp.js          # WhatsApp service class
+│   │
+│   └── config/
+│       └── config.js        # Configuration management
+│
+├── .wwebjs_auth/            # WhatsApp session data (auto-generated)
+│   └── session-*/           # Session files (persistent)
+│
+├── uploads/                 # Temporary upload directory (auto-generated)
+│
+└── node_modules/            # Dependencies (auto-generated)
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## ⚠️ Disclaimer
+
+This project is not affiliated with, authorized, maintained, sponsored or endorsed by WhatsApp or any of its affiliates or subsidiaries. This is an independent and unofficial software. Use at your own risk.
+
+**Important Notes:**
+- WhatsApp's Terms of Service prohibit the use of unofficial clients
+- This tool is for educational and personal use only
+- Excessive or commercial use may result in your WhatsApp number being banned
+- Always respect WhatsApp's rate limits and terms of service
+- Use responsibly and ethically
+
+---
+
+## 🔗 Useful Resources
+
+- [whatsapp-web.js Documentation](https://wwebjs.dev/)
+- [Express.js Documentation](https://expressjs.com/)
+- [Puppeteer Documentation](https://pptr.dev/)
+- [Node.js Best Practices](https://github.com/goldbergyoni/nodebestpractices)
+
+---
+
+## 📞 Support
+
+For questions, issues, or feature requests:
+
+- **GitHub Issues:** [Create an issue](https://github.com/omarashrafdev/wwebjs-bot/issues)
+- **Email:** Contact the repository owner
+- **Documentation:** This README file
+
+---
+
+**Built with ❤️ using Node.js, Express.js, and whatsapp-web.js**
+
+---
+
+## 📝 Changelog
+
+### Version 1.0.0 (Current)
+- Initial release
+- Single and bulk messaging
+- Media message support
+- QR code authentication
+- Rate limiting
+- API key authentication
+- Session persistence
+- Cross-platform Chrome/Chromium support
+- Comprehensive error handling
+
+---
+
+*Last Updated: October 4, 2025*
 
 ## 📋 Prerequisites
 
