@@ -18,7 +18,7 @@ class WhatsAppServer {
 
     setupMiddleware() {
         // CORS
-        this.app.use(cors());
+        this.app.use(cors({ origin: '*' }));
 
         // JSON parser
         this.app.use(express.json({ limit: '10mb' }));
