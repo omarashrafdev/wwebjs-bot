@@ -92,13 +92,18 @@ class WhatsAppServer {
         this.app.get('/api/qr', (req, res) => {
             try {
                 const qrCode = this.whatsapp.getQRCode();
+                console.log('QR code request - Available:', !!qrCode);
                 if (!qrCode) {
-                    return res.status(404).json({ error: 'QR code not available' });
+                    return res.status(404).json({ 
+                        error: 'QR code not available',
+                        status: this.whatsapp.getStatus()
+                    });
                 }
                 
                 // Return as base64 data URL
                 res.json({ qrCode });
             } catch (error) {
+                console.error('Error getting QR code:', error);
                 res.status(500).json({ error: error.message });
             }
         });
@@ -107,8 +112,12 @@ class WhatsAppServer {
         this.app.get('/api/qr/image', (req, res) => {
             try {
                 const qrCode = this.whatsapp.getQRCode();
+                console.log('QR image request - Available:', !!qrCode);
                 if (!qrCode) {
-                    return res.status(404).json({ error: 'QR code not available' });
+                    return res.status(404).json({ 
+                        error: 'QR code not available',
+                        status: this.whatsapp.getStatus()
+                    });
                 }
                 
                 // Extract base64 data and send as image
@@ -118,6 +127,7 @@ class WhatsAppServer {
                 res.setHeader('Content-Type', 'image/png');
                 res.send(buffer);
             } catch (error) {
+                console.error('Error getting QR image:', error);
                 res.status(500).json({ error: error.message });
             }
         });
@@ -194,10 +204,16 @@ class WhatsAppServer {
         // Restart WhatsApp client
         this.app.post('/api/whatsapp/restart', async (req, res) => {
             try {
-                await this.whatsapp.destroy();
-                await this.whatsapp.initialize();
-                res.json({ message: 'WhatsApp client restarted successfully' });
+                console.log('API restart request received');
+                await this.whatsapp.restart();
+                
+                const status = this.whatsapp.getStatus();
+                res.json({ 
+                    message: 'WhatsApp client restarted successfully',
+                    status: status
+                });
             } catch (error) {
+                console.error('Failed to restart WhatsApp client:', error);
                 res.status(500).json({ error: error.message });
             }
         });
